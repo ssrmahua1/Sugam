@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel Editing: june24.xlsx</title>
+    <style>
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #dddddd;
+            text-align: left;
+            padding: 8px;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        td.editable {
+            cursor: pointer;
+        }
+        td.editable input[type="text"] {
+            width: 100%;
+            border: none;
+            background-color: transparent;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- Hidden file input and password input -->
+    <input type="password" id="passwordInput" placeholder="Enter key: Sugam@June-24" style="margin-bottom: 10px;">
+    <input type="file" id="fileInput" accept=".xlsx, .xls" class="hidden" />
+
+    <div id="excelTable"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.9/xlsx.full.min.js"></script>
+    <script>
+        // Function to handle password input and reveal file input
+        var passwordInput = document.getElementById('passwordInput');
+        var fileInput = document.getElementById('fileInput');
+
+        passwordInput.addEventListener('keyup', function(event) {
+            if (event.key === 'Enter' && this.value === 'Sugam@June-24') {
+                fileInput.classList.remove('hidden');
+                fileInput.click(); // Simulate a click to trigger file selection
+            }
+        });
+
+        // Function to handle file upload and display/edit Excel data
+        fileInput.addEventListener('change', function(e) {
+            var file = e.target.files[0];
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                var data = new Uint8Array(e.target.result);
+                var workbook = XLSX.read(data, { type: 'array' });
+                var sheetName = workbook.SheetNames[0]; // Assuming first sheet is your target
+                var sheet = workbook.Sheets[sheetName];
+                var htmlStr = XLSX.utils.sheet_to_html(sheet);
+                document.getElementById('excelTable').innerHTML = htmlStr;
+
+                // Add edit functionality to editable cells
+                var editableCells = document.querySelectorAll('#excelTable td.editable');
+                editableCells.forEach(function(cell) {
+                    cell.addEventListener('click', function() {
+                        var oldValue = this.innerText.trim();
+                        var input = document.createElement('input');
+                        input.type = 'text';
+                        input.value = oldValue;
+                        this.innerHTML = '';
+                        this.appendChild(input);
+                        input.focus();
+
+                        input.addEventListener('blur', function() {
+                            var newValue = this.value.trim();
+                            if (newValue !== oldValue) {
+                                // Update cell display
+                                cell.innerText = newValue;
+                                // Update Excel sheet data
+                                var address = XLSX.utils.encode_cell({ r: cell.parentElement.rowIndex - 1, c: cell.cellIndex });
+                                sheet[address].v = newValue;
+                            } else {
+                                cell.innerText = oldValue;
+                            }
+                        });
+                    });
+                });
+            };
+            reader.readAsArrayBuffer(file);
+        });
+    </script>
+</body>
+</html>
